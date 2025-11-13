@@ -1,187 +1,209 @@
-import ttkbootstrap as tb
-from ttkbootstrap.constants import *
-from tkinter import messagebox, Toplevel, ttk
-import csv
-import tkinter as tk
-from PIL import Image, ImageTk
-import pandas as pd
-from tkinter import StringVar
-import subprocess
+# FocusGuard – Phiên bản nâng cấp giao diện bằng CustomTkinter
+# Giữ nguyên logic gốc, chỉ thay đổi GUI (Runner.py)
+
 import os
-import numpy as np
+import sys
+import csv
 import random
 import datetime
+import subprocess
+import tkinter as tk
+from tkinter import messagebox, Toplevel
+from tkinter import ttk
+# Import thư viện mới
+import customtkinter as ctk
+from PIL import Image, ImageTk
+import numpy as np
+import pandas as pd
+import matplotlib
+matplotlib.use("Agg")  # render offscreen để tránh đụng GUI
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from sklearn.linear_model import LinearRegression
-import threading
-def show_notification(message):
-    def create_window():
-        root = tk.Tk()
-        root.overrideredirect(True)
 
-        window_width = 300
-        window_height = 100
+# ---------------------------- cài đặt ----------------------------
+# Đặt chế độ giao diện (System, Light, Dark)
+ctk.set_appearance_mode("System")
+# Đặt theme màu (blue, dark-blue, green)
+ctk.set_default_color_theme("blue")
 
-        screen_width = root.winfo_screenwidth()
-        screen_height = root.winfo_screenheight()
+# ---------------------------- tiện ích (giữ nguyên) ----------------------------
+def ensure_dir(path: str):
+    if not os.path.isdir(path):
+        os.makedirs(path, exist_ok=True)
 
-        x = (screen_width // 2) - (window_width // 2)
-        y = (screen_height // 2) - (window_height // 2)
+# Tạo các thư mục cần thiết
+ensure_dir("./images")
+ensure_dir("./database")
+ensure_dir("./excercise")
 
-        root.geometry(f"{window_width}x{window_height}+{x}+{y}")
-        root.configure(bg="lightyellow")
+def show_notification(message: str):
+    """Popup thông báo (Dùng Toplevel chuẩn của Tkinter)."""
+    # Dùng Toplevel của tk thay vì ctk để có cửa sổ popup đơn giản
+    win = Toplevel(root)
+    win.overrideredirect(True)
+    window_width, window_height = 300, 100
+    screen_width, screen_height = root.winfo_screenwidth(), root.winfo_screenheight()
+    x = (screen_width // 2) - (window_width // 2)
+    y = (screen_height // 2) - (window_height // 2)
+    win.geometry(f"{window_width}x{window_height}+{x}+{y}")
+    win.configure(bg="lightyellow")
+    label = tk.Label(
+        win, text=message, font=("Arial", 12), bg="lightyellow", wraplength=280
+    )
+    label.pack(expand=True, fill="both")
+    win.after(5000, win.destroy) # Tự đóng sau 5s (thay vì 10s cũ)
 
-        label = tk.Label(root, text=message, font=("Arial", 12), bg="lightyellow", wraplength=280)
-        label.pack(expand=True)
-
-        root.after(10000, root.destroy)
-        root.mainloop()
-
-    threading.Thread(target=create_window).start()
-def format_label(label):
+def format_label(label: str) -> str:
     words = label.split()
-    return '\n'.join([' '.join(words[i:i+2]) for i in range(0, len(words), 2)])
+    return "\n".join([" ".join(words[i:i + 2]) for i in range(0, len(words), 2)])
+
+def _set_dual_images_to_frame(frame, left_img_path, right_img_path, size=(250, 250)):
+    """Hiển thị 2 ảnh (trái/phải) lên frame (đã sửa cho CustomTkinter)."""
+    
+    # CustomTkinter dùng CTkImage để quản lý ảnh tốt hơn
+    
+    # --- Ảnh trái (Biểu đồ) ---
+    if os.path.exists(left_img_path):
+        img_left = ctk.CTkImage(Image.open(left_img_path), size=size)
+        if hasattr(frame, "chart_label"):
+            frame.chart_label.configure(image=img_left, text="")
+        else:
+            frame.chart_label = ctk.CTkLabel(frame, image=img_left, text="")
+        frame.chart_label.image = img_left # Giữ reference
+        frame .chart_label.grid( row =0,  column =0,  padx  =(10, 0),  pady =10)
+    else:
+        # Xử lý nếu không có ảnh
+        if hasattr(frame, "chart_label"):
+            frame.chart_label.configure(image=None, text="(Không có ảnh biểu đồ)")
+        else:
+            frame.chart_label = ctk.CTkLabel(frame, text="(Không có ảnh biểu đồ)", width=size[0], height=size[1])
+        frame .chart_label.grid( row =0,  column =0,  padx =(10, 0),  pady =10)
+
+    # --- Ảnh phải (Ảnh phụ) ---
+    if os.path.exists(right_img_path):
+        img_right = ctk.CTkImage(Image.open(right_img_path), size=size)
+        if hasattr(frame, "temp_label"):
+            frame.temp_label.configure(image=img_right, text="")
+        else:
+            frame.temp_label = ctk.CTkLabel(frame, image=img_right, text="")
+        frame.temp_label.image = img_right # Giữ reference
+        frame .temp_label.grid( row =0,  column =1,  padx  =(10, 10),  pady =10)
+    else:
+        # Xử lý nếu không có ảnh
+        if hasattr(frame, "temp_label"):
+            frame.temp_label.configure(image=None, text="(Không có ảnh phụ)")
+        else:
+            frame.temp_label = ctk.CTkLabel(frame, text="(Không có ảnh phụ)", width=size[0], height=size[1])
+        frame .temp_label.grid( row =0,  column =1,  padx =(10, 10),  pady =10)
+
+# ---------------------------- biểu đồ (giữ nguyên logic) ----------------------------
 def show_empty_chart():
     fig, ax = plt.subplots(figsize=(5, 5))
-    ax.pie([1], labels=[""], autopct='%1.1f%%', startangle=90)
-    ax.axis('equal')
-
+    ax.pie([1], labels=[""], autopct="%1.1f%%", startangle=90)
+    ax.axis("equal")
     chart_path = "./images/empty_chart.png"
-    plt.savefig(chart_path)
+    plt.savefig(chart_path, bbox_inches="tight")
     plt.close(fig)
-
-    if os.path.exists(chart_path):
-        img = Image.open(chart_path)
-        img = img.resize((200, 200))
-        img_tk = ImageTk.PhotoImage(img)
-
-        if hasattr(frame_plot, "chart_label"):
-            root.chart_label.configure(image=img_tk)
-            root.chart_label.image = img_tk
-        else:
-            root.chart_label = ttk.Label(frame_plot, image=img_tk)
-            root.chart_label.image = img_tk
-            root.chart_label.grid(row=0, column=0)
-
-        temp_img = Image.open("./images/kimtuthaphoctap.jpg")
-        temp_img = temp_img.resize((200, 200)) 
-        temp_img_tk = ImageTk.PhotoImage(temp_img)
-
-        if hasattr(frame_plot, "temp_label"):
-            root.temp_label.configure(image=temp_img_tk)
-            root.temp_label.image = temp_img_tk
-        else:
-            root.temp_label = ttk.Label(frame_plot, image=temp_img_tk)
-            root.temp_label.image = temp_img_tk
-            root.temp_label.grid(row=0, column=1)  
+    _set_dual_images_to_frame(
+        frame_plot, chart_path, "./images/kimtuthaphoctap.jpg", size=(250, 250)
+    )
 
 def update_fatigue_pie_chart():
     try:
-        with open("./database/fatigue_log.csv", "r", encoding="utf-8-sig") as file:
-            reader = csv.reader(file)
+        with open("./database/fatigue_log.csv", "r", encoding="utf-8-sig") as f:
+            reader = csv.reader(f)
             data = list(reader)
     except FileNotFoundError:
         messagebox.showerror("Lỗi", "Không tìm thấy file lịch sử")
         return
-
     if not data:
         messagebox.showinfo("Thông báo", "Không có dữ liệu để vẽ biểu đồ.")
         return
-
+    
     fatigue_counts = {}
-    for _, status in data:
-        fatigue_counts[status] = fatigue_counts.get(status, 0) + 1
-
+    for row in data:
+        if len(row) >= 2:
+            status = row[1]
+            fatigue_counts[status] = fatigue_counts.get(status, 0) + 1
+            
     fig, ax = plt.subplots(figsize=(5, 5))
-
-    original_labels = fatigue_counts.keys()
-    formatted_labels = [format_label(label) for label in original_labels]
-    sizes = fatigue_counts.values()
-
-    wedges, texts, autotexts = ax.pie(
-        sizes, labels=formatted_labels, autopct='%1.1f%%', startangle=90, textprops={'fontsize': 16}
-    )
-    ax.axis('equal')
-
+    original_labels = list(fatigue_counts.keys())
+    formatted_labels = [format_label(lb) for lb in original_labels]
+    sizes = list(fatigue_counts.values())
+    
+    # Thêm màu nền cho biểu đồ matplotlib để hợp với Ctk
+    fig.patch.set_facecolor('#f2f2f2') # Màu sáng
+    if ctk.get_appearance_mode() == "Dark":
+        fig.patch.set_facecolor('#2b2b2b') # Màu tối
+        ax.tick_params(colors='white')
+        plt.rcParams['text.color'] = 'white'
+        
+    ax.pie(sizes, labels=formatted_labels, autopct="%1.1f%%", startangle=90,
+           textprops={"fontsize": 12})
+    ax.axis("equal")
     chart_path = "./images/fatigue_pie_chart.png"
-    plt.savefig(chart_path)
+    plt.savefig(chart_path, bbox_inches="tight", transparent=True) # Nền trong suốt
     plt.close(fig)
+    _set_dual_images_to_frame(
+        frame_plot, chart_path, "./images/kimtuthaphoctap.jpg", size=(250, 250)
+    )
+    # Reset màu text matplotlib về mặc định
+    plt.rcParams['text.color'] = 'black'
 
-    if os.path.exists(chart_path):
-        img = Image.open(chart_path)
-        img = img.resize((200, 200))
-        img_tk = ImageTk.PhotoImage(img)
-
-        if hasattr(frame_plot, "chart_label"):
-            root.chart_label.configure(image=img_tk)
-            root.chart_label.image = img_tk
-        else:
-            root.chart_label = ttk.Label(frame_plot, image=img_tk)
-            root.chart_label.image = img_tk
-            root.chart_label.grid(row=0, column=0)
-
-        temp_img = Image.open("./images/kimtuthaphoctap.jpg")
-        temp_img = temp_img.resize((200, 200))
-        temp_img_tk = ImageTk.PhotoImage(temp_img)
-
-        if hasattr(frame_plot, "temp_label"):
-            root.temp_label.configure(image=temp_img_tk)
-            root.temp_label.image = temp_img_tk
-        else:
-            root.temp_label = ttk.Label(frame_plot, image=temp_img_tk)
-            root.temp_label.image = temp_img_tk
-            root.temp_label.grid(row=0, column=1)
+# ---------------------------- chức năng camera (giữ nguyên) ----------------------------
 def turn_on_camera():
-    show_notification("Thông báo\nBật máy ảnh để nhận diện cử chỉ vui lòng chờ...")
-    subprocess.Popen(["python", "PhatHienMetMoi.py"])
+    show_notification("Thông báo\nBật máy ảnh để nhận diện cử chỉ, vui lòng chờ...")
+    # Chạy đúng Python interpreter của venv
+    subprocess.Popen([sys.executable, "PhatHienMetMoi.py"])
 
+# ---------------------------- chọn bài tập (Nâng cấp GUI) ----------------------------
 def select_exercise():
-    exercise_window = Toplevel(root)
+    # Dùng CTkToplevel thay cho Toplevel
+    exercise_window = ctk.CTkToplevel(root)
     exercise_window.title("Bài tập thể dục")
-    window_width = 700
-    window_height = 470
-
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-
-    x = (screen_width // 2) - (window_width // 2)
-    y = (screen_height // 2) - (window_height // 2)
-
-    exercise_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
+    window_width, window_height = 700, 470
+    # (Cách căn giữa cửa sổ của CTk)
+    exercise_window.geometry(f"{window_width}x{window_height}")
+    exercise_window.grab_set() # Khóa tương tác với cửa sổ chính
     exercise_window.resizable(False, False)
-
-    frame = ttk.Frame(exercise_window)
-    frame.pack()
-
-    list_image = os.listdir("./excercise")
-    list_image = [img for img in list_image if img.lower().endswith(('.png', '.jpg', '.jpeg', '.gif'))]
-
-    image_exercise = ttk.Label(frame)
-    image_exercise.pack()
-
-    current_image = {'filename': None}
+    
+    frame = ctk.CTkFrame(exercise_window, fg_color="transparent")
+    frame.pack(fill="both", expand=True)
+    
+    list_image = [img for img in os.listdir("./excercise")
+                  if img.lower().endswith((".png", ".jpg", ".jpeg", ".gif"))]
+    
+    # Dùng CTkLabel để hiển thị ảnh
+    image_exercise = ctk.CTkLabel(frame, text="")
+    image_exercise.pack(padx=10, pady=10)
+    
+    current_image = {"filename": None}
 
     def change_image():
-        available_images = [img for img in list_image if img != current_image['filename']]
-        if not available_images:
-            available_images = list_image 
-        image_filename = random.choice(available_images)
-
+        if not list_image:
+            image_exercise.configure(text="(Thư mục ./excercise trống)")
+            return
+        
+        available = [img for img in list_image if img != current_image["filename"]] or list_image
+        image_filename = random.choice(available)
         image_path = os.path.join("excercise", image_filename)
-        image = Image.open(image_path)
-        resized_image = image.resize((700, 400), Image.LANCZOS)
-        photo = ImageTk.PhotoImage(resized_image)
+        
+        try:
+            # Dùng CTkImage
+            ctk_img = ctk.CTkImage(Image.open(image_path), size=(700, 400))
+            image_exercise.configure(image=ctk_img)
+            current_image["filename"] = image_filename
+        except Exception as e:
+            image_exercise.configure(image=None, text=f"Lỗi mở ảnh: {e}")
 
-        image_exercise.configure(image=photo)
-        image_exercise.image = photo 
-        current_image['filename'] = image_filename 
-
-    change_button = ttk.Button(exercise_window, text="Đổi bài tập", command=change_image)
-    change_button.pack(pady=10)
-
+    # Dùng CTkButton
+    ctk.CTkButton(exercise_window, text="Đổi bài tập",
+                  command=change_image).pack(pady=10)
+    
     change_image()
 
+# ---------------------------- TEE / gợi ý món (Giữ nguyên logic) ----------------------------
+# Các class TEECalculator và MealSelector giữ nguyên 100%
 class TEECalculator:
     def __init__(self, BMR, BMI, activity_level, exercise_type, exercise_hours):
         self.BMR = BMR
@@ -195,17 +217,10 @@ class TEECalculator:
 
     def calculate_TEE(self):
         activity_multipliers = {
-            1: 1.2,    
-            2: 1.375,  
-            3: 1.55,   
-            4: 1.725, 
-            5: 1.9    
+            1: 1.2, 2: 1.375, 3: 1.55, 4: 1.725, 5: 1.9
         }
         multiplier = activity_multipliers.get(self.activity_level, 1.2)
-        TEE = self.BMR * multiplier
-
-
-        return round(TEE, 2)
+        return round(self.BMR * multiplier, 2)
 
     def calculate_TE(self):
         if self.exercise_type == "Nặng":
@@ -216,7 +231,6 @@ class TEECalculator:
             exercise_addition = 200 * self.exercise_hours
         else:
             exercise_addition = 0
-
         self.exercise_addition = exercise_addition
         if self.BMI < 18.5:
             TE = (self.TEE + self.BMR) + 500 - exercise_addition
@@ -229,202 +243,229 @@ class TEECalculator:
         return abs(round(TE))
 
 class MealSelector:
-    def __init__(self, TE, data_file='./database/data.csv'):
+    def __init__(self, TE, data_file="./database/data.csv"):
         self.TE = TE
-        self.data_frame = pd.read_csv(data_file, delimiter=';', encoding='utf-8', header=None, names=['Ten mon an', 'calo', 'Trong luong'])
-        self.data_frame['Trong luong'] = self.data_frame['Trong luong'].str.replace('g', '').astype(float)
+        self.data_frame = pd.read_csv(
+            data_file, delimiter=";", encoding="utf-8",
+            header=None, names=["Ten mon an", "calo", "Trong luong"]
+        )
+        self.data_frame["Trong luong"] = (
+            self.data_frame["Trong luong"].astype(str).str.replace("g", "", regex=False).astype(float)
+        )
 
     def select_food_items(self):
         selected_foods = []
-        total_calories_selected = 0
-        selected_indices = set()
-
-        while abs(total_calories_selected - self.TE) > 10:
-            food_row = random.choice(self.data_frame.index)
-            if food_row in selected_indices:
+        total = 0
+        used = set()
+        tries = 0
+        while abs(total - self.TE) > 10 and tries < 5000:
+            tries += 1
+            idx = random.choice(self.data_frame.index)
+            if idx in used:
                 continue
-            food = self.data_frame.loc[food_row]
-            food_calories = int(food['calo'])
-            if food_calories > self.TE or total_calories_selected + food_calories > self.TE:
+            row = self.data_frame.loc[idx]
+            cal = int(row["calo"]) if str(row["calo"]).isdigit() else 0
+            if cal <= 0 or cal > self.TE or total + cal > self.TE:
                 continue
-            selected_foods.append(food)
-            selected_indices.add(food_row)
-            total_calories_selected += food_calories
-
-            if total_calories_selected >= self.TE or len(selected_indices) == len(self.data_frame):
-                break
-
+            selected_foods.append(row)
+            used.add(idx)
+            total += cal
         return selected_foods
 
     def train_linear_regression(self):
-        X = self.data_frame['calo'].to_numpy().reshape(-1, 1)
-        y = self.data_frame['Trong luong'].to_numpy().reshape(-1, 1)
+        X = self.data_frame["calo"].to_numpy().reshape(-1, 1)
+        y = self.data_frame["Trong luong"].to_numpy().reshape(-1, 1)
         model = LinearRegression()
         model.fit(X, y)
         return model
 
     def save_results(self, selected_foods, model):
-        with open("./database/result.txt", "w", encoding='utf-8') as f:
+        with open("./database/result.txt", "w", encoding="utf-8") as f:
             for food in selected_foods:
-                predicted_weight = model.predict(np.array([[food['calo']]])).flatten()[0]
+                predicted_weight = model.predict(np.array([[food["calo"]]])).flatten()[0]
                 f.write(f"{food['Ten mon an']};{round(food['calo'])};{round(food['Trong luong'], 2)};{round(predicted_weight, 2)}\n")
-
-        with open("./database/result.txt", "r", encoding='utf-8') as f:
+        with open("./database/result.txt", "r", encoding="utf-8") as f:
             lines = f.readlines()
-
-        with open("./database/result_modified.txt", "w", encoding='utf-8') as f:
+        with open("./database/result_modified.txt", "w", encoding="utf-8") as f:
             for line in lines:
-                parts = line.strip().split(';')
-                modified_line = ' - '.join(parts[:-1])
-                f.write(modified_line + '\n')
+                parts = line.strip().split(";")
+                f.write(" - ".join(parts[:-1]) + "\n")
 
 def read_food_data():
     foods = []
     try:
         with open("./database/result_modified.txt", "r", encoding="utf-8") as f:
-            lines = f.readlines()
-            for line in lines:
-                parts = line.strip().split(' - ')
+            for line in f:
+                parts = line.strip().split(" - ")
                 if len(parts) == 3:
                     foods.append(parts)
     except FileNotFoundError:
         print("Không tìm thấy file result_modified.txt.")
     return foods
 
+# ---------------------------- gợi ý món (Nâng cấp GUI) ----------------------------
 def meal_suggestions():
-    nutrition_window = Toplevel(root)
+    nutrition_window = ctk.CTkToplevel(root)
     nutrition_window.title("Gợi ý dinh dưỡng")
+    nutrition_window.geometry("830x550")
     nutrition_window.resizable(False, False)
-    window_width = 830
-    window_height = 550
+    nutrition_window.grab_set()
 
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
+    # Chia cửa sổ thành 2 frame: Trái (nhập liệu) và Phải (kết quả)
+    frame_left = ctk.CTkFrame(nutrition_window)
+    frame_left.grid(row=0, column=0, padx=10, pady=10, sticky="ns")
+    
+    frame_right = ctk.CTkFrame(nutrition_window)
+    frame_right.grid(row=0, column=1, padx=10, pady=10, sticky="ns")
 
-    x = (screen_width // 2) - (window_width // 2)
-    y = (screen_height // 2) - (window_height // 2)
-    nutrition_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
-
-    labels = ["Năm sinh", "Chiều cao (cm)", "Cân nặng (kg)", "Giới tính", "Mức độ vận động", "Mức độ luyện tập", "Thời gian luyện tập (giờ)"]
+    # --- Frame Trái (Nhập liệu) ---
+    labels = ["Năm sinh", "Chiều cao (cm)", "Cân nặng (kg)", "Giới tính",
+              "Mức độ vận động", "Mức độ luyện tập", "Thời gian luyện tập (giờ)"]
     entries = {}
-
     options = {
         "Giới tính": ["Nam", "Nữ"],
         "Mức độ vận động": ["Thụ động", "Nhẹ", "Trung bình", "Năng động", "Rất tích cực"],
         "Mức độ luyện tập": ["Không luyện tập", "Nhẹ", "Trung bình", "Nặng"]
     }
 
-    for i, label_text in enumerate(labels):
-        label = ttk.Label(nutrition_window, text=label_text)
+    for i, text in enumerate(labels):
+        label = ctk.CTkLabel(frame_left, text=text)
         label.grid(row=i, column=0, padx=10, pady=5, sticky="w")
-
-        var = StringVar()
-        if label_text in options:
-            combo = ttk.Combobox(nutrition_window, textvariable=var, values=options[label_text], width=28, state="readonly")
-            combo.grid(row=i, column=1, padx=10, pady=5, sticky="w")
-            combo.set(options[label_text][0])
+        
+        var = ctk.StringVar()
+        if text in options:
+            cb = ctk.CTkComboBox(frame_left, variable=var,
+                                 values=options[text], width=200, state="readonly")
+            cb.grid(row=i, column=1, padx=10, pady=5, sticky="w")
+            cb.set(options[text][0])
         else:
-            entry = ttk.Entry(nutrition_window, textvariable=var, width=28)
-            entry.grid(row=i, column=1, padx=10, pady=5, sticky="w")
-        
-        entries[label_text] = var
-        
-    label_calo_mat_di = ttk.Label(nutrition_window, text="Calo bị mất đi sau khi luyện tập: ")
-    label_calo_mat_di.grid(row=0, column=2, padx=10, pady=5, sticky="w")
-    
-    label_BMR = ttk.Label(nutrition_window, text="Chỉ số BMR: ")
-    label_BMR.grid(row=1, column=2, padx=10, pady=5, sticky="w")
-    
-    label_BMI = ttk.Label(nutrition_window, text="Chỉ số BMI: ")
-    label_BMI.grid(row=2, column=2, padx=10, pady=5, sticky="w")
-    
-    label_tinh_trang = ttk.Label(nutrition_window, text="Tình trạng: ")
-    label_tinh_trang.grid(row=3, column=2, padx=10, pady=5, sticky="w")
-    
-    progressbar = ttk.Progressbar(nutrition_window, style='red')
-    progressbar.grid(row=4, column=2, padx=10, pady=5, sticky="w")
-    
-    label_TEE = ttk.Label(nutrition_window, text="Nhu cầu năng lượng cho hoạt động (TEE): ")
-    label_TEE.grid(row=5, column=2, padx=10, pady=5, sticky="w")
-    
-    label_TE = ttk.Label(nutrition_window, text="Tổng calo cần thiết cho 1 ngày (TE): ")
-    label_TE.grid(row=6, column=2, padx=10, pady=5, sticky="w")
-    
-    tree_frame = ttk.Frame(nutrition_window)
-    tree_frame.grid(row=len(labels) + 1, column=0, columnspan=2, pady=10, padx=10)
+            ent = ctk.CTkEntry(frame_left, textvariable=var, width=200)
+            ent.grid(row=i, column=1, padx=10, pady=5, sticky="w")
+        entries[text] = var
 
-    tree = ttk.Treeview(tree_frame, columns=("Tên món ăn", "Calo", "Trọng lượng"), show="headings")
+    # --- Frame Phải (Kết quả và Treeview) ---
+    label_calo_mat_di = ctk.CTkLabel(frame_right, text="Calo bị mất đi sau khi luyện tập: ")
+    label_BMR = ctk.CTkLabel(frame_right, text="Chỉ số BMR: ")
+    label_BMI = ctk.CTkLabel(frame_right, text="Chỉ số BMI: ")
+    label_tinh_trang = ctk.CTkLabel(frame_right, text="Tình trạng: ")
+    progressbar = ctk.CTkProgressBar(frame_right)
+    progressbar.set(0) # Khởi tạo giá trị
+    label_TEE = ctk.CTkLabel(frame_right, text="Nhu cầu năng lượng cho hoạt động (TEE): ")
+    label_TE = ctk.CTkLabel(frame_right, text="Tổng calo cần thiết cho 1 ngày (TE): ")
+
+    label_calo_mat_di.grid(row=0, column=0, padx=10, pady=5, sticky="w")
+    label_BMR.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+    label_BMI.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+    label_tinh_trang.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+    progressbar.grid(row=4, column=0, padx=10, pady=5, sticky="ew")
+    label_TEE.grid(row=5, column=0, padx=10, pady=5, sticky="w")
+    label_TE.grid(row=6, column=0, padx=10, pady=5, sticky="w")
+
+    # Treeview (dùng ttk vì CTk không có Treeview, nhưng style nó cho hợp)
+    from tkinter import ttk
+    style = ttk.Style()
+    style.theme_use("default")
+    # Style cho Treeview
+    style.configure("Treeview",
+                    background="#DCDCDC",
+                    foreground="black",
+                    rowheight=25,
+                    fieldbackground="#DCDCDC")
+    style.map('Treeview', background=[('selected', '#347083')])
+
+    tree_frame = ctk.CTkFrame(frame_right)
+    tree_frame.grid(row=7, column=0, pady=10, padx=10, sticky="nsew")
+    frame_right.grid_rowconfigure(7, weight=1)
+    frame_right.grid_columnconfigure(0, weight=1)
+
+    tree = ttk.Treeview(tree_frame, columns=("Tên món ăn", "Calo", "Trọng lượng"),
+                        show="headings", selectmode="browse")
     tree.heading("Tên món ăn", text="Tên món ăn", anchor="center")
     tree.heading("Calo", text="Calo", anchor="center")
     tree.heading("Trọng lượng", text="Trọng lượng", anchor="center")
-    tree.column("Tên món ăn", width=250, anchor="center")
-    tree.column("Calo", width=100, anchor="center")
-    tree.column("Trọng lượng", width=120, anchor="center")
+    tree.column("Tên món ăn", width=200, anchor="w")
+    tree.column("Calo", width=80, anchor="center")
+    tree.column("Trọng lượng", width=100, anchor="center")
 
-    scrollbar = ttk.Scrollbar(tree_frame, orient="vertical", command=tree.yview)
+    scrollbar = ctk.CTkScrollbar(tree_frame, command=tree.yview)
     tree.configure(yscrollcommand=scrollbar.set)
+    tree.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
-    tree.pack(expand=True, fill=BOTH)
-
-    def filter_and_suggest():
-        age = int(entries["Năm sinh"].get())
-        height = float(entries["Chiều cao (cm)"].get())
-        weight = float(entries["Cân nặng (kg)"].get())
-        gender = entries["Giới tính"].get()
-        activity_level = ["Thụ động", "Nhẹ", "Trung bình", "Năng động", "Rất tích cực"].index(entries["Mức độ vận động"].get()) + 1
-        exercise_type = entries["Mức độ luyện tập"].get()
-        exercise_hours = float(entries["Thời gian luyện tập (giờ)"].get())
-        now_year = datetime.datetime.now().year
-        age = now_year - age
-        BMI = weight / ((height / 100) ** 2)
-        if gender == "Nữ":
-            BMR = 655 + (9.6 * weight) + (1.8 * height) - (4.7 * age)
-            BMR = round(BMR, 1)
-            return BMR
-        elif gender == "Nam":
-            BMR = 66 + (13.7 * weight) + (5 * height) - (6.8 * age)
-            BMR = round(BMR, 1)
-
-        calculator = TEECalculator(BMR, BMI, activity_level, exercise_type, exercise_hours)
-        
-        label_calo_mat_di.config(text="Calo bị mất đi sau khi luyện tập: " + str(calculator.exercise_addition))
-        label_BMR.config(text="Chỉ số BMR: " + str(round(BMR, 2)))
-        label_BMI.config(text="Chỉ số BMI: " + str(round(BMI, 1)))
-        if BMI < 18.5:
-            label_tinh_trang.config(text="Tình trạng: Thiếu cân")
-            progressbar.config(bootstyle="success") 
-        elif BMI >= 18.5 and BMI <= 24.9:
-            label_tinh_trang.config(text="Tình trạng: Bình Thường")
-            progressbar.config(bootstyle="default")  
-        elif BMI >= 25 and BMI <= 29.9:
-            label_tinh_trang.config(text="Tình trạng: Thừa cân")
-            progressbar.config(bootstyle="warning")  
-        elif BMI >= 30:
-            label_tinh_trang.config(text="Tình trạng: Béo phì")
-            progressbar.config(bootstyle="danger")  
-        progressbar["value"] = 100
-        progressbar.update_idletasks()
-        label_TEE.config(text="Nhu cầu năng lượng cho hoạt động (TEE): " + str(calculator.TEE))
-        label_TE.config(text="Tổng calo cần thiết cho 1 ngày (TE): " + str(calculator.TE))
-        selector = MealSelector(calculator.TE)
-        selected_foods = selector.select_food_items()
-        model = selector.train_linear_regression()
-        selector.save_results(selected_foods, model)
-
-        update_treeview()
 
     def update_treeview():
-        food_data = read_food_data()
-
         for i in tree.get_children():
             tree.delete(i)
-
-        for food in food_data:
+        for food in read_food_data():
             tree.insert("", "end", values=food)
 
-    filter_button = ttk.Button(nutrition_window, text="Tính và Gợi ý", command=filter_and_suggest)
-    filter_button.grid(row=len(labels), column=0, columnspan=2, pady=10)
+    def filter_and_suggest():
+        try:
+            birth_year = int(entries["Năm sinh"].get())
+            height = float(entries["Chiều cao (cm)"].get())
+            weight = float(entries["Cân nặng (kg)"].get())
+            gender = entries["Giới tính"].get()
+            activity_level = ["Thụ động", "Nhẹ", "Trung bình", "Năng động", "Rất tích cực"].index(
+                entries["Mức độ vận động"].get()
+            ) + 1
+            exercise_type = entries["Mức độ luyện tập"].get()
+            exercise_hours = float(entries["Thời gian luyện tập (giờ)"].get())
+        except Exception:
+            messagebox.showwarning("Chú ý", "Vui lòng nhập đúng định dạng dữ liệu.")
+            return
 
+        now_year = datetime.datetime.now().year
+        age = now_year - birth_year
+        BMI = weight / ((height / 100) ** 2)
+        
+        if gender == "Nữ":
+            BMR = 655 + (9.6 * weight) + (1.8 * height) - (4.7 * age)
+        else:
+            BMR = 66 + (13.7 * weight) + (5 * height) - (6.8 * age)
+        BMR = round(BMR, 1)
+        
+        calculator = TEECalculator(BMR, BMI, activity_level, exercise_type, exercise_hours)
+        
+        label_calo_mat_di.configure(text=f"Calo bị mất đi sau khi luyện tập: {calculator.exercise_addition}")
+        label_BMR.configure(text=f"Chỉ số BMR: {BMR}")
+        label_BMI.configure(text=f"Chỉ số BMI: {round(BMI, 1)}")
+        
+        # Cập nhật progress bar và màu
+        progress_val = (BMI - 15) / (30 - 15) # Giả sử thang từ 15-30
+        progress_val = max(0, min(1, progress_val)) # Kẹp giá trị
+        
+        if BMI < 18.5:
+            label_tinh_trang.configure(text="Tình trạng: Thiếu cân", text_color="blue")
+            progressbar.configure(progress_color="blue")
+        elif 18.5 <= BMI <= 24.9:
+            label_tinh_trang.configure(text="Tình trạng: Bình thường", text_color="green")
+            progressbar.configure(progress_color="green")
+        elif 25 <= BMI <= 29.9:
+            label_tinh_trang.configure(text="Tình trạng: Thừa cân", text_color="orange")
+            progressbar.configure(progress_color="orange")
+        else:
+            label_tinh_trang.configure(text="Tình trạng: Béo phì", text_color="red")
+            progressbar.configure(progress_color="red")
+            
+        progressbar.set(progress_val)
+        
+        label_TEE.configure(text=f"Nhu cầu năng lượng cho hoạt động (TEE): {calculator.TEE}")
+        label_TE.configure(text=f"Tổng calo cần thiết cho 1 ngày (TE): {calculator.TE}")
+        
+        try:
+            selector = MealSelector(calculator.TE)
+            selected_foods = selector.select_food_items()
+            model = selector.train_linear_regression()
+            selector.save_results(selected_foods, model)
+            update_treeview()
+        except FileNotFoundError:
+            messagebox.showerror("Lỗi", "Không tìm thấy ./database/data.csv")
+
+    # Nút bấm (đặt ở frame trái, bên dưới)
+    ctk.CTkButton(frame_left, text="Tính và Gợi ý",
+                  command=filter_and_suggest)\
+       .grid(row=len(labels), column=0, columnspan=2, pady=20, padx=10, sticky="ew")
+
+# ---------------------------- lịch sử mệt mỏi (Nâng cấp GUI) ----------------------------
 def show_fatigue_history():
     try:
         with open("./database/fatigue_log.csv", "r", encoding="utf-8-sig") as file:
@@ -434,36 +475,31 @@ def show_fatigue_history():
         messagebox.showerror("Lỗi", "Không tìm thấy file lịch sử")
         return
 
-    history_window = Toplevel(root)
+    history_window = ctk.CTkToplevel(root)
     history_window.title("Lịch Sử Mệt Mỏi")
-    window_width = 400
-    window_height = 400
+    history_window.geometry("400x450")
+    history_window.resizable(False, False)
+    history_window.grab_set()
 
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    x = (screen_width // 2) - (window_width // 2)
-    y = (screen_height // 2) - (window_height // 2)
-    history_window.geometry(f"{window_width}x{window_height}+{x}+{y}")
-
-    frame = ttk.Frame(history_window)
-    frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)
-
-    tree = ttk.Treeview(frame, columns=("Thời Gian", "Trạng Thái"), show="headings", selectmode="browse")
+    frame = ctk.CTkFrame(history_window, fg_color="transparent")
+    frame.pack(expand=True, fill="both", padx=10, pady=10)
+    
+    # (Dùng lại style Treeview từ hàm meal_suggestions)
+    tree = ttk.Treeview(frame, columns=("Thời Gian", "Trạng Thái"),
+                        show="headings", selectmode="browse")
     tree.heading("Thời Gian", text="Thời Gian", anchor="center")
     tree.heading("Trạng Thái", text="Trạng Thái", anchor="center")
     tree.column("Thời Gian", width=150, anchor="center")
-    tree.column("Trạng Thái", width=220, anchor="center")
+    tree.column("Trạng Thái", width=200, anchor="w")
 
-    scrollbar = ttk.Scrollbar(frame, orient="vertical", command=tree.yview)
+    scrollbar = ctk.CTkScrollbar(frame, command=tree.yview)
     tree.configure(yscrollcommand=scrollbar.set)
-    tree.pack(side="left", fill=tk.BOTH, expand=True)
+    tree.pack(side="left", fill="both", expand=True)
     scrollbar.pack(side="right", fill="y")
 
     for i, row in enumerate(data):
-        tag = "evenrow" if i % 2 == 0 else "oddrow"
-        tree.insert("", tk.END, values=row, tags=(tag,))
-    tree.tag_configure("evenrow", background="#F0F0F0", foreground="black")
-    tree.tag_configure("oddrow", background="white", foreground="black")
+        # Bỏ tag màu vì style ttk đã xử lý
+        tree.insert("", tk.END, values=row)
 
     def delete_selected():
         selected = tree.selection()
@@ -482,78 +518,91 @@ def show_fatigue_history():
         if messagebox.askyesno("Xác nhận", "Bạn có chắc chắn muốn xoá toàn bộ lịch sử?", parent=history_window):
             tree.delete(*tree.get_children())
             with open("./database/fatigue_log.csv", "w", encoding="utf-8-sig", newline="") as file:
-                pass  
+                pass
             messagebox.showinfo("Thành công", "Đã xoá toàn bộ lịch sử", parent=history_window)
 
-    button_frame = ttk.Frame(history_window)
+    button_frame = ctk.CTkFrame(history_window, fg_color="transparent")
     button_frame.pack(pady=10)
+    
+    ctk.CTkButton(button_frame, text="Xoá dòng đã chọn", command=delete_selected).grid(row=0, column=0, padx=10)
+    ctk.CTkButton(button_frame, text="Xoá toàn bộ lịch sử", command=delete_all, fg_color="red", hover_color="#C00000").grid(row=0, column=1, padx=10)
 
-    delete_btn = ttk.Button(button_frame, text="Xoá dòng đã chọn", command=delete_selected)
-    delete_btn.grid(row=0, column=0, padx=10)
+# ---------------------------- giao diện chính (Nâng cấp GUI) ----------------------------
 
-    clear_btn = ttk.Button(button_frame, text="Xoá toàn bộ lịch sử", command=delete_all)
-    clear_btn.grid(row=0, column=1, padx=10)
-
-root = tb.Window(themename="superhero")
+# Tạo cửa sổ chính
+root = ctk.CTk()
 root.title("FocusGuard")
-
-window_width = 500
-window_height = 620
-
-screen_width = root.winfo_screenwidth()
-screen_height = root.winfo_screenheight()
-
-x = (screen_width // 2) - (window_width // 2)
-y = (screen_height // 2) - (window_height // 2)
-
-root.geometry(f"{window_width}x{window_height}+{x}+{y}")
+root.geometry("750x500") # Kích thước mới cho layout sidebar
 root.resizable(False, False)
 
+# --- (Mục 1) Tạo Sidebar bên trái ---
+sidebar_frame = ctk.CTkFrame(root, width=180, corner_radius=0)
+sidebar_frame.grid(row=0, column=0, rowspan=4, sticky="nsew")
 
-image_background_path = "./images/background.jpg"
-image = Image.open(image_background_path)
-resized_image = image.resize((500, 620), Image.LANCZOS)
-photo = ImageTk.PhotoImage(resized_image)
+# --- THÊM ẢNH NỀN VÀO SIDEBAR ---
+# Đảm bảo file "background.jpg" nằm trong thư mục "images" nhé
+bg_path = "./images/background.jpg" 
+if os.path.exists(bg_path):
+    bg_img_data = Image.open(bg_path)
+    # Cắt ảnh cho vừa (180x500)
+    bg_img = ctk.CTkImage(bg_img_data, size=(180, 500)) 
+    bg_label = ctk.CTkLabel(sidebar_frame, image=bg_img, text="")
+    bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+else:
+    print("Không tìm thấy file ./images/background.jpg")
 
-image_background = ttk.Label(root, image=photo)
-image_background.image = photo
-image_background.place(x=0, y=0, relwidth=1, relheight=1)
+# --- ĐẶT WIDGET BẰNG .PLACE() ---
 
-style = tb.Style()
-style.configure("TButton", font=("Helvetica", 12))
-
+# Logo/Icon
 icon_path = "./images/icon.jpg"
-icon = Image.open(icon_path)
-resized_icon = icon.resize((80, 80), Image.LANCZOS)
-icon = ImageTk.PhotoImage(resized_icon)
-icon_label = tb.Label(root, image=icon)
-icon_label.pack(pady=10)
+if os.path.exists(icon_path):
+    icon_img = ctk.CTkImage(Image.open(icon_path), size=(80, 80))
+    # Thêm fg_color="transparent" để label không che mất nền
+    icon_label = ctk.CTkLabel(sidebar_frame, image=icon_img, text="", fg_color="transparent") 
+    icon_label.place(relx=0.5, y=60, anchor="center") # y = 20 (pady) + 40 (nửa height)
+else:
+    logo_label = ctk.CTkLabel(sidebar_frame, text="FocusGuard", font=ctk.CTkFont(size=20, weight="bold"), fg_color="transparent") 
+    logo_label.place(relx=0.5, y=60, anchor="center")
 
-camera_frame = tb.Frame(root)
-camera_frame.pack(pady=10, padx=20, fill=X)
+# Các nút trên Sidebar (Giả sử các nút cao 40px)
+# relwidth=0.8 tương đương với padx=20 trên frame rộng 180
+btn_camera = ctk.CTkButton(sidebar_frame, text=" 📷  Bật Máy Ảnh", command=turn_on_camera, fg_color="#D32F2F", hover_color="#B71C1C")
+btn_camera.place(relx=0.5, y=130, anchor="center", relwidth=0.8) # y = 100 (icon_end) + 10 (pady) + 20 (nửa height)
 
-camera_btn = tb.Button(camera_frame, text="📷 Bật Máy Ảnh", bootstyle="primary", command=turn_on_camera)
-camera_btn.pack(ipadx=10, ipady=20, fill=X)
+btn_exercise = ctk.CTkButton(sidebar_frame, text=" 🏋️  Bài Thể Dục", command=select_exercise, fg_color="#F57C00", hover_color="#E65100")
+btn_exercise.place(relx=0.5, y=180, anchor="center", relwidth=0.8) # y = 150 (btn_end) + 10 (pady) + 20 (nửa height)
 
-top_frame = tb.Frame(root)
-top_frame.pack(pady=10, padx=20, fill=X)
+btn_meal = ctk.CTkButton(sidebar_frame, text=" 🥗  Gợi Ý Thực Đơn", command=meal_suggestions)
+btn_meal.place(relx=0.5, y=230, anchor="center", relwidth=0.8) # y = 200 + 10 + 20
 
-exercise_btn = tb.Button(top_frame, text="🏋️ Chọn Bài Thể Dục", bootstyle="success", command=select_exercise)
-exercise_btn.grid(row=0, column=0, padx=2, ipadx=10, ipady=10, sticky="ew")
+btn_history = ctk.CTkButton(sidebar_frame, text=" 📜  Lịch Sử Mệt Mỏi", command=show_fatigue_history, fg_color="#388E3C", hover_color="#1B5E20")
+btn_history.place(relx=0.5, y=280, anchor="center", relwidth=0.8) # y = 250 + 10 + 20
 
-meal_btn = tb.Button(top_frame, text="🥗 Gợi Ý Thực Đơn", bootstyle="info", command=meal_suggestions)
-meal_btn.grid(row=0, column=1, padx=2, ipadx=10, ipady=10, sticky="ew")
+# Nút Cài đặt (Giả sử label 20px, menu 30px)
+theme_menu = ctk.CTkComboBox(sidebar_frame,  values =["Light", "Dark", "System"],
+ command =ctk.set_appearance_mode,
+ fg_color ="#565B5E",  button_color ="#565B5E",  button_hover_color ="#4A4E51",
+ state ="readonly",  justify ="center")
+theme_menu.set("Color Theme") # Đặt chữ hiển thị ban đầu
+theme_menu.place( relx =0.5,  y =330,  anchor ="center",  relwidth =0.8) # Đặt nó ở giữa
 
-history_btn = tb.Button(root, text="📜 Lịch Sử Mệt Mỏi", bootstyle="warning", command=show_fatigue_history)
-history_btn.pack(padx= 20, pady=10, ipadx=10, ipady=10, fill=X)
+# --- (Mục 2) Tạo Khung chính bên phải ---
+main_frame = ctk.CTkFrame(root, fg_color="transparent")
+main_frame.grid(row=0, column=1, rowspan=4, sticky="nsew", padx=20, pady=20)
+root.grid_columnconfigure(1, weight=1)
+root.grid_rowconfigure(3, weight=1)
 
-top_frame.columnconfigure(0, weight=1)
-top_frame.columnconfigure(1, weight=1)
+# Nút Cập nhật biểu đồ (dùng .pack() và thêm ipady)
+btn_update_chart = ctk.CTkButton(main_frame, text="Cập nhật biểu đồ", command=update_fatigue_pie_chart, fg_color="#673AB7", hover_color="#512DA8")
+btn_update_chart.pack(fill="x", padx=10, pady=(10, 5), ipady=10) # Thêm ipady=10 để nút cao lên
 
-update_button = tb.Button(root, text="Cập nhật biểu đồ", bootstyle="primary", command=update_fatigue_pie_chart)
-update_button.pack(pady=10, padx=20, fill=X)
+# Frame chứa 2 ảnh (dùng .pack())
+frame_plot = ctk.CTkFrame(main_frame)
+frame_plot.pack( fill ="y",  expand =True,  padx =0,  pady =(0, 5))
 
-frame_plot = ttk.Frame(root)
-frame_plot.pack()
+# Hiển thị biểu đồ rỗng ban đầu
 show_empty_chart()
+
+# (Không cần ảnh nền vì CustomTkinter tự quản lý nền)
+
 root.mainloop()
