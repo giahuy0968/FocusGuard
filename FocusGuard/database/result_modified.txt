@@ -1,144 +1,34 @@
-Lưỡi heo - 178 - 100.0
-Mít kho - 100 - 100.0
-Bánh bông lan cuốn - 155 - 34.44
-Sữa có đường - 336 - 100.0
-Chà bông (ruốt thịt) - 396 - 100.0
-Bánh Hotdog nhân xúc xích - 170 - 37.78
-Lưỡi bò - 164 - 100.0
-Dưa chuột muối - 13 - 100.0
-Chè nếp khoai môn - 385 - 85.56
-Canh mướp - 31 - 155.0
-Bún riêu cua - 414 - 188.2
-Tim bò - 89 - 100.0
-Bánh phồng tôm chiên - 169 - 108.0
-Chả chiên - 416 - 100.0
-Sâm bổ lượng - 268 - 59.56
-Bún xào chay - 570 - 228.0
-Hạt điều - 328 - 100.0
-Hoành thánh - 248 - 124.0
-Củ từ - 92 - 100.0
-Sơ ri - 14 - 100.0
-Canh khổ qua hầm chay - 88 - 88.0
-Lòng đỏ trứng gà - 327 - 100.0
-Đầu heo - 335 - 100.0
-Bánh lá chả tôm - 331 - 110.3
-Rau má - 20 - 100.0
-Bánh xếp chiên - 146 - 32.44
-Dầu - 897 - 100.0
-Thịt heo xào đậu que - 240 - 96.0
-Hủ tíu nam vang - 400 - 200.0
-Ghẹ - 54 - 100.0
-Gỏi cuốn - 147 - 98.0
-Cá đối kho - 82 - 50.0
-Tương ớt - 37 - 100.0
-Bánh lọt - 505 - 112.22
-Kẹo mè xửng - 122 - 27.11
-Củ sắn - 28 - 100.0
-Huyết heo luộc - 44 - 100.0
-Cá cơm lăn bột chiên chay - 316 - 90.3
-Tai heo - 121 - 100.0
-Món xào thập cẩm chay - 142 - 71.0
-Hủ tíu thịt heo - 361 - 144.4
-Xíu mại - 104 - 104.0
-Phở gà trung bình - 483 - 161.0
-Bưởi - 8 - 26.0
-Chà bông thịt gà - 409 - 100.0
-Bánh bò nướng - 303 - 67.33
-Dầu thực vật - 897 - 100.0
-Bún rêu chay - 482 - 219.1
-Sữa bột nguyên kem - 81 - 18.0
-Bánh cuốn - 590 - 196.7
-Hủ tíu mì - 410 - 164.0
-Nước tương - 40 - 100.0
-Gỏi khô bò - 268 - 107.2
-Chuối xanh - 72 - 100.0
-Rau (dùng với bánh xèo) - 53 - 108.0
-Cá cơm lăn bột chiên - 195 - 100.0
-Xôi vị - 459 - 102.0
-Cải xanh - 15 - 100.0
-Nước mắm - 21 - 100.0
-Bánh ít thịt dừa - 261 - 130.5
-Hành lá - 22 - 100.0
-Khoai tây - 92 - 100.0
-Dâu tây - 43 - 100.0
-Bánh xếp nướng nhân dừa - 319 - 70.89
-Mận - 11 - 70.0
-Củ sắn - 52 - 185.0
-Rau bí - 18 - 100.0
-Tép rang - 101 - 50.5
-Bánh Patéchaud - 374 - 83.11
-Đậu phụ - 568 - 100.0
-Bánh há cảo - 363 - 121.0
-Cá khô - 208 - 100.0
-Mè - 573 - 100.0
-Phở bò tái đặc biệt - 543 - 181.0
-Rau ngò - 13 - 100.0
-Ngó sen - 60 - 100.0
-Phở bò tái chín trung bình - 456 - 152.0
-Thìa là - 22 - 100.0
-Cá nạc - 80 - 100.0
-Chim cút chiên bơ - 208 - 100.0
-Sữa bột đậu nành - 67 - 14.89
-Bánh bò hấp - 100 - 100.0
-Đậu rồng - 34 - 100.0
-Trứng ngỗng - 210 - 46.67
-Chanh - 23 - 100.0
-Đậu phộng rang - 573 - 108.0
-Mãng tre - 14 - 100.0
-Bánh chuối hấp - 506 - 168.7
-Chè táo xọn - 311 - 69.11
-Thịt bò xào măng - 104 - 52.0
-Chả lụa - 136 - 100.0
-Bò cuốn mỡ chài bình dân - 1180 - 295.0
-Khế - 15 - 100.0
-Gan heo xào - 200 - 80.0
-Nho khô - 158 - 50.0
-Bánh cay - 25 - 8.3
-Bánh flan - 66 - 44.0
-Đậu đen - 325 - 100.0
-Bò cuốn mỡ chài - 1535 - 383.75
-Trứng vịt - 184 - 100.0
-Cà phê đen - 40 - 8.89
-Trứng gà công nghiệp - 81 - 18.0
-Gà xào sả ớt - 272 - 108.8
-Cơm tấm chả - 592 - 108.0
-Mướp - 16 - 100.0
-Cá bạc má kho - 167 - 100.0
-Nước mía - 106 - 23.56
-Trứng gà - 166 - 100.0
-Lạp xưởng - 585 - 100.0
-Củ sắn - 152 - 100.0
-Hải sâm - 90 - 100.0
-Cá mòi - 124 - 100.0
-Trứng vịt lộn - 98 - 21.78
-Mề gà - 99 - 100.0
-Kem Cornetto - 202 - 44.89
-Trứng vịt muối - 90 - 20.0
-Rau (dùng với phở) - 26 - 108.0
-Chè bắp - 352 - 78.22
-Khô bò tẩm gia vị - 135 - 40.0
-Bánh mì - 249 - 100.0
-Bánh giò gà - 176 - 58.7
-Bắp chuối - 20 - 100.0
-Cơm trắng - 372 - 108.0
-Thịt bò đóng hộp - 120 - 48.0
-Khoai tây chiên - 131 - 108.0
-Bún măng - 485 - 194.0
-Bánh rán - 192 - 42.67
+Lạp xưởng chiên - 293 - 73.25
 Gan chân giò - 124 - 100.0
-Gạo nếp cái - 346 - 100.0
-Đậu phộng da cá - 270 - 108.0
-Bánh cam đường - 215 - 47.78
-Bánh Quế - 35 - 7.78
+Ếch - 90 - 100.0
+Miến dong - 332 - 100.0
+Bánh xốp kem - 98 - 21.78
+Cam sành - 93 - 250.0
+Dưa chuột muối - 13 - 100.0
+Trứng cút - 17 - 3.78
+Sinh tố - 277 - 61.56
+Mãng tre - 14 - 100.0
+Cóc - 34 - 58.0
+Nước mía - 106 - 23.56
+Dâu tây - 11 - 25.0
+Rau (dùng với bánh xèo) - 53 - 108.0
+Tôm đồng - 90 - 100.0
+Đậu đũa - 57 - 100.0
+Bún thịt nướng chay - 451 - 225.5
+Chuối chà - 36 - 54.0
+Hành củ tươi - 24 - 100.0
+Rau giấp cá - 22 - 100.0
+Gỏi bắp chuối - 124 - 82.7
+Tôm biển - 82 - 100.0
+Bánh sừng trâu - 227 - 50.44
+Bánh chuối nướng - 293 - 65.11
+Nước dừa tươi - 94 - 20.89
+Tôm lăn bột chiên chay - 247 - 82.3
+Dưa giá - 39 - 100.0
 Cá bạc má chiên - 135 - 100.0
-Đuôi heo - 467 - 100.0
-Cà tím nướng - 33 - 66.0
-Canh khổ qua hầm - 175 - 350.0
-Hến - 45 - 100.0
-Ốc bươu - 84 - 100.0
-Món kho thập cẩm chay - 141 - 70.5
-Sữa bột tách bơ - 35 - 7.78
-Nho Mỹ - 68 - 15.11
-Cá bống - 70 - 100.0
-Hạt dưa hấu rang - 110 - 108.0
-Khoai mì - 137 - 30.44
+Thanh long - 225 - 563.0
+Bánh xếp chiên - 146 - 32.44
+Mận Đà Lạt - 5 - 25.0
+Cá phèn - 104 - 100.0
+Khoai lang nghệ - 116 - 100.0
+Gấc - 122 - 100.0
