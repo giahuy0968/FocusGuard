@@ -1,4 +1,6 @@
 import cv2
+import os
+import sys
 import mediapipe as mp
 import numpy as np
 from ultralytics import YOLO
@@ -33,7 +35,54 @@ pose = mp_pose.Pose()
 mp_face_mesh = mp.solutions.face_mesh
 face_mesh = mp_face_mesh.FaceMesh(max_num_faces=1, refine_landmarks=True)
 
-cap = cv2.VideoCapture(0)
+# Đảm bảo working directory là thư mục script (giúp khi gọi qua subprocess)
+try:
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(script_dir)
+except Exception:
+    pass
+
+# Hàm thử mở camera với nhiều chỉ số và in thông tin chẩn đoán
+def open_camera_with_diagnostics(max_index=4):
+    last_err = None
+    for i in range(max_index + 1):
+        try:
+            # Trên Windows, sử dụng CAP_DSHOW thường giúp tránh bị chiếm
+            if os.name == 'nt':
+                cap = cv2.VideoCapture(i, cv2.CAP_DSHOW)
+            else:
+                cap = cv2.VideoCapture(i)
+        except Exception as e:
+            last_err = e
+            print(f"Thử mở camera index {i} lỗi: {e}")
+            continue
+
+        if cap is not None and cap.isOpened():
+            print(f"✓ Camera index {i} đã được khởi động thành công!")
+            return cap, i
+        else:
+            try:
+                cap.release()
+            except Exception:
+                pass
+            print(f"✖ Camera index {i} không khả dụng")
+
+    print("❌ LỖI: Không thể mở bất kỳ thiết bị camera nào (đã thử các index 0..{max_index})")
+    if last_err:
+        print(f"Lỗi gần nhất: {last_err}")
+    print("Vui lòng kiểm tra: \n  - Camera có được kết nối không?\n  - Có ứng dụng nào đang sử dụng camera không?\n  - Quyền truy cập camera đã được cấp chưa?\n  - Thử tăng max_index trong mã nếu bạn có nhiều thiết bị camera.")
+    return None, None
+
+# Kiểm tra và mở camera (thử nhiều index)
+cap, detected_camera_index = open_camera_with_diagnostics(max_index=4)
+if cap is None:
+    try:
+        input("\nNhấn Enter để thoát...")
+    except Exception:
+        pass
+    sys.exit(1)
+else:
+    print("Nhấn 'q' để thoát chương trình")
 def show_notification(message):
     def create_window():
         root = tk.Tk()
